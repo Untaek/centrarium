@@ -10,11 +10,11 @@ exclude:
 
 # Site settings
 title: 그저 지나가던 순진한 개발자
-subtitle: "별로 잘 알지도 못하면서 아는 척 하는 사람입니다"
+subtitle: "별로 잘 알지는 못 하지만 아는 척 해보기..."
 email: wkblack11@gmail.com
 name: Lim Untaek
 description: >
-  A simple yet classy theme for your Jekyll website or blog.
+  운택이 블로그
 # Base URL of site (i.e. /blog). It should always start with a slash,
 # and never end with a slash. Set it to a blank value if hosting at the
 # root of your server.
