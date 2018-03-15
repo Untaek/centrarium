@@ -9,8 +9,8 @@ exclude:
   - "/vendor/"
 
 # Site settings
-title: Untaek
-subtitle: "A simple yet classy theme for your Jekyll website or blog"
+title: 아는척 하는 블로그
+subtitle: "별로 잘 알지도 못하면서 아는 척 하는 사람입니다"
 email: wkblack11@gmail.com
 name: Lim Untaek
 description: >
@@ -19,7 +19,7 @@ description: >
 # and never end with a slash. Set it to a blank value if hosting at the
 # root of your server.
 baseurl: "" # the subpath of your site, e.g. /blog/
-url: "http://untaek.github.io" # the base hostname & protocol for your site
+url: "https://untaek.github.io/" # the base hostname & protocol for your site
 cover: "/assets/header_image.jpg"
 logo: "/assets/logo.png"
 
@@ -86,8 +86,8 @@ social:
 
   - name: GitHub
     icon: github
-    username: bencentra
-    url: https://github.com/bencentra
+    username: untaek
+    url: https://github.com/untaek
     desc: Fork me on GitHub
     share: false
 
