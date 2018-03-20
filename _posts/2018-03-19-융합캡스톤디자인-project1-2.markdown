@@ -1,0 +1,192 @@
+---
+layout: post
+title:  "융합 캡스톤 디자인 - 첫 번째 프로젝트-2"
+date:   2018-03-19 00:00:00
+author: 임운택
+categories: 융합캡스톤디자인
+tags:	융합캡스톤디자인 채팅프로그램 암호화
+cover:  "/assets/instacode.png"
+---
+
+### 한 것들
+
+며칠 전 결정한 컨셉과 요구사항을 가지고 backend 를 제작하고 있다. 어느정도 모양이 나오고 있다.
+
+### 개발 과정
+
+언제나와 같이 개발 환경을 먼저 구성하였다. 나는 babel, eslint, nodemon을 설치했다. 프로젝트 성격에 따라서 추가적으로 설치하는 모듈도 있지만 일단은 이정도만 사용한다.
+
+* [Babel](https://babeljs.io): ESMA Javascript 의 최신 문법을 사용할 수 있게 해준다. 
+* [ESlint](https://eslint.org): vscode에서 코딩을 할 때 각종 문법 체킹을 해준다.
+* [Nodemon](https://nodemon.io): 노드 프로그램 실행 도중에 소스코드 수정하면 auto-reload를 해준다. 아주 편리하다.
+
+채팅 프로그램이 순수 socket.io 로만 동작하는 것은 현실적이지 않기 때문에 그 밑바탕에 http 서버가 필요할 것이다. 그리고 최소한의 접속자 식별을 위한 별도의 세션 스토어를 사용한다. 따라서 설치하는 모듈은 다음과 같다.
+
+* [Express](http://expressjs.com)
+* [express-session](https://github.com/expressjs/session)
+* [connect-redis](https://www.npmjs.com/package/connect-redis)
+* [socket.io](https://socket.io)
+
+**채팅 진행 flow 되돌아보기**
+
+![image](/assets/ben1-flow1.png)
+
+앞서서 그려본 그림이다. 나는 이 그림을 바탕으로 프로그램을 작성해 볼 것이다. 이 소스는 개발을 위한 `console.log()`로 범벅이 되어있고 코드 분리도 하지 않은 파일이다. 보기에 별로 대단한 소스는 아니지만 그래도 한번 올려보기로 하겠다.  처음에 세션의 설정과 세션스토어인 redis의 초기 설정을 하고, Socket.io 에서 세션을 사용하기 위해서 세션을 미들웨어로 하는 설정을 한다.
+
+**서버 프로그램**
+
+~~~ javascript
+import express from 'express'
+import http from 'http'
+import sio from 'socket.io'
+import session from 'express-session'
+import bodyParser from 'body-parser'
+import redis from 'redis'
+import connRedis from 'connect-redis'
+
+const app = express()
+const server = http.Server(app)
+const io = sio(server)
+
+const RedisStore = connRedis(session)
+const redisClient = redis.createClient()
+redisClient.on('ready', () => {
+  console.log("redis is ready")
+  redisClient.flushall()
+})
+const store = new RedisStore({
+  client: redisClient,
+})
+
+const sessionMiddleware = session({
+  store: store,
+  secret: 'vmwoewdsdscWE*37ffsd',
+  resave: false,
+  saveUninitialized: true,
+})
+
+io.use((socket, next) => {
+  sessionMiddleware(socket.request, socket.request.res, next)
+})
+app.use(sessionMiddleware)
+app.use(bodyParser.json())
+app.use(bodyParser.urlencoded({extended: false}))
+
+server.listen(3000);
+~~~
+
+이제 소켓에서 세션 정보를 사용 할 수 있게 되었다. 세션 정보는 사용자 접속 여부를 판단 하는데 사용할 것이다. 초기 설정이 끝났으니 프로그램 진행 순서대로 코드를 나열 해 보겠다. 서버 구현 해야 하는 기능은 다음과 같다.
+
+1. 클라이언트에게 채팅 참가 인원 목록 주기
+2. 클라이언트가 정한 닉네임으로 채팅 참가 요청 처리
+3. 채팅 기능(각종 메시지, 접속자 출입 알림 등)
+
+**클라이언트에게 채팅 참가 인원 목록 주기**
+
+~~~javascript
+app.get('/', (req, res) => {
+  res.sendFile(__dirname + '/index.html')
+})
+
+// 채팅 참가자 목록 주기
+app.get('/users', (req, res) => {
+  store.all((err, sessions) => {
+    const users = sessions.filter(session => {
+      return session.username !== undefined
+    }).map(session => {
+      return session.username
+    })
+
+    res.json({users})
+  })
+})
+~~~
+
+사이트에 접속한 누구에게나 `/users` 로 `GET` 요청을 하면 채팅 참가자 목록을 준다. 채팅 참가자는 세션에 `username` 요소를 가지고 있기 때문에 참가자만 따로 걸러낼 수 있다.
+
+**클라이언트가 정한 닉네임으로 채팅 참가 요청 처리**
+
+~~~javascript
+// 채팅 참여 하기 (닉네임 중복 여부 체크)
+app.post('/join', (req, res) => {
+  // join을 했는데 세션에 username이 존재하면 username 교체
+  // 세션에 username이 없으면 새로 참여
+  const newname = req.body.username
+  const originalname = req.session.username;
+
+  checkOverlapName(newname)
+    .then(() => {
+      if(originalname) {
+        req.session.username = newname
+        chat.emit('change', {username: originalname, newname})
+        res.json({status: 'change', username: originalname, newname})
+      }
+      else{
+        req.session.username = newname
+        req.session.active = true
+        chat.emit('join', newname)
+    
+        res.json({status: 'join', username: newname})
+      }
+    })
+    .catch(() => {
+      res.json({status: 'overlap'})
+    })
+})
+~~~
+
+채팅에 참가를 원하는 클라이언트는 서버에 `/join` 에 `POST` 요청을 해야한다. 클라이언트는 `body`에 `username`을 담아서 보낸다. 서버는 참가자들의 `username`의 중복 여부를 확인 하고 세션에 `username`이 저장되어 있다면 이름을 바꿔주고, 아니라면 이름을 새로 넣는다.
+
+**채팅 기능(각종 메시지, 접속자 출입 알림 등)**
+
+~~~ javascript
+const chat = io.of('chat')
+const waitExpires = new Set()
+// 웹소켓 처리
+chat.on('connection', socket => {
+  const { sessionID } = socket.request
+
+  // 세션 파기 대기 시간(1000ms) 전에 재접속 한 사람
+  if(waitExpires.has(sessionID)){
+    waitExpires.delete(sessionID)
+  }
+  
+  // 서버에 의해 활성화 된(접속 허가 된) 사용자의 참가
+  console.log('a user connected: ', sessionID)
+  socket.emit('connected')
+
+  // 채팅 메세지 처리
+  socket.on('chat', (message) => {
+    store.get(sessionID, (err, sess) => {
+      console.log(sessionID)                                        
+      if(sess && sess.active){
+        console.log(sess.username, sessionID, ': ', message)
+        chat.emit('chat', sess.username, message)
+      }
+    })
+  })
+
+  socket.on('disconnect', () => {
+    // 1초 기다렸다가 세션 지우고 나갔음을 broadcast 하기
+    waitExpires.add(sessionID)
+
+    setTimeout(function() {
+      store.get(sessionID, (err, sess) => {
+        if(waitExpires.has(sessionID) && sess && sess.username){
+          console.log('disconnected: ', sessionID)
+          chat.emit('left', sess.username)
+          store.destroy(sessionID)
+        }
+      })
+    }, 1000);
+  })
+})
+~~~
+
+소켓 처리 부분에서는 클라이언트 접속, 채팅 메시지 처리, 클라이언트 종료를 감지하여 처리한다. 소켓이 `disconnect` 되었을 때에는 곧바로 세션을 파기하지 않고 1초의 유예 시간을 준 후 파기한다. 그 이유는 페이지가 실수나 알 수 없는 이유로 새로고침이 되었을 때나, 소켓이 갑자기 연결 해제 되었을 때를 대처하기 위한 것이다. 나름대로의 방법을 만들었는데 클라이언트가 `disconnect`되었을 때 서버에서 해당 클라이언트의 세션을 별도의 공간(`waitExpires`)에 저장해 놨다가 1초 내에 재접속 하면 지우는 방법이다. 잘 작동한다.
+
+**클라이언트 페이지**
+
+![image](/assets/ben1-client1.png)
+
+서버 개발동안 임시 테스트 용으로 만든 레이아웃이다.
