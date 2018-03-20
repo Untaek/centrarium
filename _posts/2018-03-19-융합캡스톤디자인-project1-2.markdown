@@ -35,14 +35,14 @@ cover:  "/assets/instacode.png"
 
 **서버 프로그램**
 
-~~~ javascript
+{% highlight javascript %}
 import express from 'express'
 import http from 'http'
 import sio from 'socket.io'
 import session from 'express-session'
 import bodyParser from 'body-parser'
 import redis from 'redis'
-import connRedis from 'connect-redis'
+import connRedis from 'connect-redis';
 
 const app = express()
 const server = http.Server(app)
@@ -73,7 +73,7 @@ app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({extended: false}))
 
 server.listen(3000);
-~~~
+{% endhighlight %}
 
 이제 소켓에서 세션 정보를 사용 할 수 있게 되었다. 세션 정보는 사용자 접속 여부를 판단 하는데 사용할 것이다. 초기 설정이 끝났으니 프로그램 진행 순서대로 코드를 나열 해 보겠다. 서버 구현 해야 하는 기능은 다음과 같다.
 
@@ -83,7 +83,7 @@ server.listen(3000);
 
 **클라이언트에게 채팅 참가 인원 목록 주기**
 
-~~~javascript
+{% highlight javascript %}
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/index.html')
 })
@@ -100,13 +100,13 @@ app.get('/users', (req, res) => {
     res.json({users})
   })
 })
-~~~
+{% endhighlight %}
 
 사이트에 접속한 누구에게나 `/users` 로 `GET` 요청을 하면 채팅 참가자 목록을 준다. 채팅 참가자는 세션에 `username` 요소를 가지고 있기 때문에 참가자만 따로 걸러낼 수 있다.
 
 **클라이언트가 정한 닉네임으로 채팅 참가 요청 처리**
 
-~~~javascript
+{% highlight javascript %}
 // 채팅 참여 하기 (닉네임 중복 여부 체크)
 app.post('/join', (req, res) => {
   // join을 했는데 세션에 username이 존재하면 username 교체
@@ -133,13 +133,13 @@ app.post('/join', (req, res) => {
       res.json({status: 'overlap'})
     })
 })
-~~~
+{% endhighlight %}
 
 채팅에 참가를 원하는 클라이언트는 서버에 `/join` 에 `POST` 요청을 해야한다. 클라이언트는 `body`에 `username`을 담아서 보낸다. 서버는 참가자들의 `username`의 중복 여부를 확인 하고 세션에 `username`이 저장되어 있다면 이름을 바꿔주고, 아니라면 이름을 새로 넣는다.
 
 **채팅 기능(각종 메시지, 접속자 출입 알림 등)**
 
-~~~ javascript
+{% highlight javascript %}
 const chat = io.of('chat')
 const waitExpires = new Set()
 // 웹소켓 처리
@@ -181,7 +181,7 @@ chat.on('connection', socket => {
     }, 1000);
   })
 })
-~~~
+{% endhighlight %}
 
 소켓 처리 부분에서는 클라이언트 접속, 채팅 메시지 처리, 클라이언트 종료를 감지하여 처리한다. 소켓이 `disconnect` 되었을 때에는 곧바로 세션을 파기하지 않고 1초의 유예 시간을 준 후 파기한다. 그 이유는 페이지가 실수나 알 수 없는 이유로 새로고침이 되었을 때나, 소켓이 갑자기 연결 해제 되었을 때를 대처하기 위한 것이다. 나름대로의 방법을 만들었는데 클라이언트가 `disconnect`되었을 때 서버에서 해당 클라이언트의 세션을 별도의 공간(`waitExpires`)에 저장해 놨다가 1초 내에 재접속 하면 지우는 방법이다. 잘 작동한다.
 
@@ -190,3 +190,7 @@ chat.on('connection', socket => {
 ![image](/assets/ben1-client1.png)
 
 서버 개발동안 임시 테스트 용으로 만든 레이아웃이다.
+
+![image](/assets/ben1-client2.png)
+
+이렇게 변모하였다... 아직 손 볼 곳이 보인다. 어느정도 반응형으로 만들고 싶고 채팅창은 옆으로 삐져 나오고 등등... 기간이 꽤 남았기 때문에 걱정하지 않는다.
