@@ -189,7 +189,7 @@ chat.on('connection', socket => {
 
 ![image](/assets/ben1-client1.png)
 
-서버 개발동안 임시 테스트 용으로 만든 레이아웃이다.
+위의 사진은 서버 개발동안 임시 테스트 용으로 만든 레이아웃이다.
 
 ![image](/assets/ben1-client2.png)
 

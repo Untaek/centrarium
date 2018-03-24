@@ -9,8 +9,8 @@ exclude:
   - "/vendor/"
 
 # Site settings
-title: 그저 지나가던 순진한 개발자
-subtitle: "별로 잘 알지는 못 하지만 아는 척 해보기..."
+title: 별거 아닌 개발자에서 멋진 개발자로
+subtitle: "잘 알지는 못 하지만 아는 척 해보기..."
 email: wkblack11@gmail.com
 name: Lim Untaek
 description: >
@@ -80,8 +80,8 @@ social:
 
   - name: LinkedIn
     icon: linkedin
-    username: Ben Centra
-    url: https://www.linkedin.com/pub/ben-centra/47/769/60a
+    username: untaek
+    url: https://www.linkedin.com/
     desc: Connect with me on LinkedIn
     share: true
 
